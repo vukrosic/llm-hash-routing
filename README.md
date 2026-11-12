@@ -24,7 +24,7 @@ Data (not in the repo, `data/`): `counts.npy` (GPT-2 token counts of FineWeb), `
 
 **Setup.** `hr.py`: the plain transformer of `llm-value-embeddings/ve.py` (RMSNorm, RoPE, QK-norm, Muon on matrices, Adam on the rest), with every feed-forward layer replaced by a DeepSeek-style MoE: 1 shared expert plus top-2 of 8 routed experts, active width equal to a dense FFN, sqrt(softplus) router scores, aux-loss-free balancing. Hash layers use a random fixed token-ID → 2-expert table; the router still sets the 2 weights, as in V4. Data: FineWeb plus planted ParaRel facts written 2, 8 or 32 times, from the memory paper. Data files are symlinks into `llm-value-embeddings/data` and `muon/ngram-hints/data`.
 
-## First run (2026-11-12): width 48, 4 layers, 120 steps, one seed
+## First run (2026-11-12): width 48, 4 layers, 120 steps, one run each
 
 | Arm | Web loss | Stored facts, 32 copies (loss) | Relation gap, 32 copies (higher is better) | Learned layers: share of a token's uses sent to its usual experts (chance) |
 |---|---|---|---|---|
