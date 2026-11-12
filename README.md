@@ -351,3 +351,33 @@ Balanced sits 0.05 above the limit everywhere; 64/1, 128/2, 256/4 and 384/6 give
 **Noise.** Three repeats at 64 experts: table 4.835 / 4.847 / 4.840, learned 4.875 / 4.887 / 4.872; gap -0.037, spread 0.012 / 0.015.
 
 Takeaway: the paper is rewritten around the load rule (PAPER.md, claims 1-3); the loss claims (table never worse, churn explains the early lead) are claims 4-6.
+
+## Which layers should use a table (sixth round, 2026-11-12)
+
+Many 5-30 s runs. New flags: `--ctx` (after training, replace one learned layer's routing by each word's most common expert set, and by a random table, at test time) and `--split P` (every word written as two pieces, so no piece names a word).
+
+**Early gain sits in layer 0** (hashed minus learned, 200 steps, width 32):
+
+| Model | Hash L0 only | Hash L1 only | Later layer only | Hash all | Random-table cost L0 / later |
+|---|---|---|---|---|---|
+| 4 layers, top-1 | -0.098 | -0.003 | -0.012, -0.010 | -0.110 | 0.169 / 0.004-0.018 |
+| 6 layers, top-1 | -0.111 | -0.026 | -0.013, -0.002 | -0.125 | 0.151 / 0.002-0.011 |
+| 4 layers, shared top-2 | -0.013 | +0.003 | 0.000 | -0.016 | 0.041 / 0.003-0.005 |
+| 4 layers, split words | -0.026 | -0.010 | -0.008 | -0.028 | 0.342 / 0.004-0.007 |
+
+Churn is the same in every layer (0.58-0.74), so the gain follows how much the layer's expert choice matters.
+
+**A learned router's context is worth nothing in short runs**: forcing a per-word table at test time changed loss by -0.017 to -0.001 in 10 settings (depth, width 64, vocab 16K, 32/64 experts, split words, reversed rows).
+
+**Where the table loses** (width 8, 2 layers, vocab 500, 2,400 steps, 124 tokens per weight):
+
+| Reversed rows | Learned | Hash both | Hash L0 | Hash L1 |
+|---|---|---|---|---|
+| 0% | 2.911 | 2.910 | | |
+| 20% | 2.976 | 2.985 | | |
+| 50% | 3.129 | 3.154 | 3.131 | 3.124 |
+| 50%, shared top-2 | 3.117 | 3.144 | | |
+
+Gap along training at 50%: -0.032, -0.009, -0.006, 0.000, +0.023, +0.025. Test-time context cost rose to +0.009 (L1 +0.007). One learned layer wins it all back. 4 layers at the same steps: all arms tie (learned 3.122, first 3 hashed 3.119, last 3 hashed 3.128, all hashed 3.120).
+
+Takeaway: hash the first layer(s) for the early gain; keep learned routers later, because the table only loses when words need context-dependent experts after long training, and one learned layer fixes that. Paper claim 7.

@@ -33,6 +33,8 @@ p.add_argument("--cool", type=float, default=0.3, help="share of steps in the fi
 p.add_argument("--rehash", type=float, default=0.0, help="every 25 steps, give this share of tokens new random experts in hashed layers (forced churn)")
 p.add_argument("--freeze", type=int, default=0, help="at this step, turn every learned layer into a fixed table: each token's most used experts so far")
 p.add_argument("--unk", default="table", choices=["table", "router", "skip"], help="router: in hashed layers the unknown-word token uses the learned router; skip: in every MoE layer the unknown token uses only the shared expert and is left out of load and balancing (real models have no unknown token)")
+p.add_argument("--ctx", action="store_true", help="after training, for each learned layer, replace its routing at test time by each token's most common expert set (counted on 400 training rows) and record the web-loss increase: how much that layer's routing uses context beyond the word")
+p.add_argument("--split", type=int, default=0, help="P > 0: write every word as two pieces (word mod P, P + word // P), so no piece names a word on its own and a layer needs context to know the word, as with subword tokens in large models; fact scores are skipped")
 p.add_argument("--cap", type=float, default=0.0, help="expert capacity factor: each expert takes at most cap x (tokens x k / E) tokens per batch, later ones are dropped (weight 0, residual passes); 0 = no cap")
 p.add_argument("--bspeed", type=float, default=0.01, help="aux-loss-free bias step (DeepSeek-V4 uses 0.001 over far more steps)")
 p.add_argument("--width", type=int, default=48); p.add_argument("--layers", type=int, default=4); p.add_argument("--heads", type=int, default=4)
@@ -76,6 +78,12 @@ class World:
         va = np.memmap(os.path.join(DATA, "fineweb_val_000000.bin"), dtype=np.uint16, mode="r", offset=1024)
         s.val = s.look[np.stack([np.asarray(va[x:x + L]) for x in np.linspace(0, len(va) - L - 1, 300).astype(np.int64)]).astype(np.int64)]
         if a.rev: flip = np.random.default_rng(5).random(len(s.rows)) < a.rev; s.rows[flip] = s.rows[flip, ::-1]
+        if a.split:  # every word -> two pieces; rows keep their length, so each row holds half as many words
+            P = a.split; nv = P + -(-s.V // P)
+            two = lambda w: np.stack([w % P, P + w // P], -1).reshape(*w.shape[:-1], -1)
+            s.rows = two(s.rows)[:, :L]; s.val = two(s.val)[:, :L]
+            s.V = nv + 1; s.unk = nv  # the last ID is never used
+            s.freq = np.bincount(s.rows.reshape(-1), minlength=s.V).astype(float)
         s.valrev = np.ascontiguousarray(s.val[:, ::-1])
         s.nfact = nfact; s.ntok = tokens
         print(f"world: V={s.V}, {len(s.rows)} rows, {len(s.facts)} facts ({nfact} tokens, {nfact / tokens:.1%})", flush=True)
@@ -119,7 +127,7 @@ class MoE(nn.Module):
         s.router = nn.Linear(d, E, bias=False); s.register_buffer("bias", torch.zeros(E))
         if hashed: s.register_buffer("tid2eid", hash_table(V, E, k, layer))
         s.register_buffer("cnt", torch.zeros(V, E))  # training-time token -> expert counts (for --freeze)
-        s.idx = None
+        s.idx = None; s.force = None  # test-time per-token table (--ctx)
         s.stat = [0.0, 0.0, 0, 0.0, 0]; s.skip = None  # + last-quarter busiest/average sum and count  # training: summed drop share, summed busiest/average load, batches
 
     def forward(s, h, ids):
@@ -127,6 +135,7 @@ class MoE(nn.Module):
         z = s.router(hf if a.rin == "hidden" else F.rms_norm(s.x0, (d,)).reshape(-1, d))
         sc = torch.sqrt(F.softplus(z)) if a.score == "sqrtsoftplus" else torch.sigmoid(z)
         idx = s.tid2eid[ids.reshape(-1)] if s.hashed else (sc + s.bias).topk(s.k, -1).indices
+        if s.force is not None: tab, known = s.force; idx = torch.where(known[ids.reshape(-1)][:, None], tab[ids.reshape(-1)], idx)
         if s.hashed and a.unk == "router": u = ids.reshape(-1) == s.tid2eid.shape[0] - 1; idx = torch.where(u[:, None], (sc + s.bias).topk(s.k, -1).indices, idx)
         w = torch.full_like(idx, 1.0 / s.k, dtype=hf.dtype) if (s.hashed and a.hashw == "equal") else sc.gather(1, idx)
         w = w / w.sum(-1, keepdim=True)
@@ -223,7 +232,7 @@ def evaluate(m, W):
     if a.rev:
         xr = torch.tensor(W.valrev, device=DEV); lr_ = m(xr[:, :-1]); r["web.rev"] = float(F.cross_entropy(lr_.reshape(-1, lr_.shape[-1]).float(), xr[:, 1:].reshape(-1)))
     rng = np.random.default_rng(1); rels = sorted(W.byrel)
-    for c in COPIES:
+    for c in (() if a.split else COPIES):
         fs = [f for f in W.facts if f["copies"] == c]
         own = answer_lp(m, W, [W.prompt(f["train"], f) for f in fs])
         new = answer_lp(m, W, [W.prompt(f["T"][0], f) for f in fs])
@@ -250,6 +259,40 @@ def routing(m, W):
         out[f"route.{i}.maxload"] = float(load.max()); out[f"route.{i}.token"] = agree(ids)
         out[f"route.{i}.null"] = agree(np.random.default_rng(2).permutation(ids))  # chance level: same counts, token IDs shuffled
     return out
+
+
+@torch.no_grad()
+def ctx_cost(m, W):
+    """Test-time context ablation. Count each token's expert sets on 400 training rows, then for one learned layer at a time
+    (and for all learned layers together) route every token seen 3+ times (not the unknown token) to its most common set."""
+    m.eval(); out = {}
+    x = torch.tensor(np.concatenate([W.val, W.valrev]) if a.rev else W.val, device=DEV)  # with --rev, half the scored rows are reversed
+    def web(): lg = m(x[:, :-1]); return float(F.cross_entropy(lg.reshape(-1, W.V).float(), x[:, 1:].reshape(-1)))
+    base = web(); out["ctx.base"] = base
+    tr = torch.tensor(W.rows[:400], device=DEV)[:, :-1]; m(tr); ids = tr.reshape(-1)
+    tabs = {}
+    for i, blk in enumerate(m.blocks):
+        f = blk.ffn
+        if f.hashed: continue
+        sets = f.idx.sort(-1).values; key = (sets * (f.E ** torch.arange(f.k, device=DEV))).sum(-1)  # one code per expert set
+        tab = torch.zeros(W.V, f.k, dtype=torch.long, device=DEV); known = torch.zeros(W.V, dtype=torch.bool, device=DEV)
+        for t in torch.unique(ids).tolist():
+            if t == W.unk: continue
+            msk = ids == t
+            if msk.sum() < 3: continue
+            ks, c = torch.unique(key[msk], return_counts=True); best = ks[c.argmax()]
+            tab[t] = sets[msk][key[msk] == best][0]; known[t] = True
+        tabs[i] = (tab, known)
+    m(x[:, :-1]); learned = {i: m.blocks[i].ffn.idx.sort(-1).values.clone() for i in tabs}
+    for i in tabs:
+        f = m.blocks[i].ffn; f.force = tabs[i]; out[f"ctx.{i}"] = web() - base
+        out[f"ctx.moved.{i}"] = float((f.idx.sort(-1).values != learned[i]).any(-1).float().mean())
+        rnd = hash_table(W.V, f.E, f.k, 77 + i).to(DEV); f.force = (rnd, tabs[i][1]); out[f"ctx.rand.{i}"] = web() - base  # control: random table, same tokens
+        f.force = None
+    for i in tabs: m.blocks[i].ffn.force = tabs[i]
+    out["ctx.all"] = web() - base
+    for i in tabs: m.blocks[i].ffn.force = None
+    m.train(); return out
 
 
 # ---------------- train ----------------
@@ -313,11 +356,13 @@ def main():
     r = evaluate(m, W)
     if a.moe:
         for i, blk in enumerate(m.blocks): d, l, n, ll, ln = blk.ffn.stat; r[f"route.{i}.drop"] = d / max(n, 1); r[f"route.{i}.trainload"] = l / max(n, 1); r[f"route.{i}.lateload"] = ll / max(ln, 1)
+    if a.moe and a.ctx: r.update(ctx_cost(m, W))
     name = a.tag or (f"moe{a.moe}k{a.topk}_hash{a.hash.replace(',', '') or 'none'}_{a.hashw}_{a.score}" if a.moe else "dense") + f"_w{a.width}_l{a.layers}_s{a.steps}" + (f"_seed{a.seed}" if a.seed else "")
     res = dict(name=name, args=vars(a), params=nparam, active=int(nact), train_s=round(train_s, 2), scores=r, curve=curve)
     with open(os.path.join(HERE, "results.jsonl"), "a") as f: f.write(json.dumps(res) + "\n")
-    show = " ".join(f"{k}={r[k]:.3f}" for k in ("web", "facts.stored.32", "facts.new.32", "facts.gap.32", "facts.stored.2"))
+    show = " ".join(f"{k}={r.get(k, float('nan')):.3f}" for k in ("web", "facts.stored.32", "facts.new.32", "facts.gap.32", "facts.stored.2"))
     rt = " ".join(f"L{i}: token {r[f'route.{i}.token']:.2f} (chance {r[f'route.{i}.null']:.2f}) maxload {r[f'route.{i}.maxload']:.2f}" for i in range(a.layers)) if a.moe else ""
+    if a.ctx: rt += "\n  ctx cost: " + " ".join(f"L{i} {r[f'ctx.{i}']:+.3f}" for i in range(a.layers) if f"ctx.{i}" in r) + f"  all {r['ctx.all']:+.3f}  moved " + " ".join(f"{r[f'ctx.moved.{i}']:.2f}" for i in range(a.layers) if f"ctx.moved.{i}" in r) + "  random-table cost " + " ".join(f"{r[f'ctx.rand.{i}']:+.3f}" for i in range(a.layers) if f"ctx.rand.{i}" in r)
     print(f"{name}: params {nparam / 1e6:.2f}M (active {nact / 1e6:.2f}M), train {train_s:.1f}s\n  {show}\n  {rt}", flush=True)
 
 
