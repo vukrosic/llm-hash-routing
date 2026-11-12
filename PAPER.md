@@ -20,7 +20,7 @@ The same limit binds a learned router whenever it routes by word, and in our mod
 
 *Figure 3. The early loss follows the moves. Making a fixed table move words on purpose costs loss in proportion to how many it moves.*
 
-The early lead is largest with one expert per word, no shared expert and many experts, and it vanishes with a shared expert and several experts per word, because a move only damages the share of the word's output that the moved expert carries. A random table and a frequency-balanced table give the same loss, so a table should be balanced by word frequency, which only lowers the load. Almost all of the early gain comes from the first layer, where the hidden state is still close to the word itself, so its experts work as a memory for each word and moving a word throws that memory away. A table loses only when the same word needs different handling in different contexts and training is long, and then keeping a learned router in one layer is enough to win the loss back, which fits hashing only the first layers, as DeepSeek-V4 does.
+The early lead is largest with one expert per word, no shared expert and many experts, and it vanishes with a shared expert and several experts per word, because a move only damages the share of the word's output that the moved expert carries. The best table keeps each word on one fixed expert set, sorts words by frequency and cuts the list into runs of equal total frequency: rare words then share experts with other rare words instead of being drowned out by common ones, and the load is balanced. Almost all of the early gain comes from the first layer, where the hidden state is still close to the word itself, so its experts work as a memory for each word and moving a word throws that memory away. A table loses only when the same word needs different handling in different contexts and training is long, and then keeping a learned router in one layer is enough to win the loss back, which fits hashing only the first layers, as DeepSeek-V4 does.
 
 <img src="figures/abs_rules.svg" width="100%">
 
@@ -55,6 +55,7 @@ The table costs no compute and `V x k` small integers per layer. Two ways to fil
 ```text
 random:    each token gets k experts drawn at random
 balanced:  tokens from most to least common, each gets the k experts with the least total frequency so far
+sorted:    tokens from most to least common, cut into E runs of equal total frequency (Section 10)
 ```
 
 ## 2. Who uses it today
@@ -79,7 +80,7 @@ These papers report that hash routing is competitive in loss. None gives the loa
 | 3 | A learned router that routes by word hits the same limit | 7 |
 | 4 | On web text, a fixed table never trains worse than a learned router; it leads early and ties after long training | 8 |
 | 5 | The early lead comes from the learned router moving words; a move costs more the more of the word's output one expert carries, and the more experts there are | 9 |
-| 6 | Random and balanced tables give the same loss, so balance the table for load | 10 |
+| 6 | Fill the table by frequency order cut into runs of equal total frequency: it balances the load and lowers loss after rare words. Spreading a word over experts costs loss | 10 |
 | 7 | The early gain comes from the first layer. A table loses only when words need context-dependent experts and training is long, and one learned layer wins it back | 11 |
 
 Claims 1 and 2 are proven for any token frequencies and checked exactly on two tokenizers and in training. Claims 3 and 6 held in every setting tested; claim 4 held on web text in every setting and fails when many words have two jobs (claim 7). Claim 5's sizes are trends over 8 designs. Claim 7's first half held in 4 settings; its second half rests on 2-layer models and tied in a 4-layer model.
@@ -108,7 +109,7 @@ Claims 1 and 2 are proven for any token frequencies and checked exactly on two t
 | Busiest expert of learned routers in every layer of 2- and 4-layer models | Claim 3 |
 | Table vs learned in 8 designs, 13 other settings, and long runs to 248 tokens per weight | Claim 4 |
 | Churn of a normal, slowed, frozen and word-only router; forced moves of a table in 8 designs | Claim 5 |
-| Random, balanced and learned-then-frozen tables | Claim 6 |
+| Random, greedy balanced, sorted, grouped by use, learned-then-frozen tables; words spread by the previous word | Claim 6 |
 | Hash one layer at a time in 4- and 6-layer models; replace one learned layer's routing by a per-word table at test time; words split into two pieces; reversed rows with long training | Claim 7 |
 
 **Noise.** Three repeated runs of the same setting differed by up to 0.02 in web loss in the short runs and by up to 0.015 in the long 64-expert runs, so smaller single-run differences are not ordered.
@@ -294,23 +295,50 @@ Loss per unit of churn follows the weight per expert (correlation 0.88 over 8 de
 
 With more experts each expert sees a narrower set of words, so a moved word lands where nothing like it has been learned, and the learned router also moves more. Hash Layers saw the same growth from 16 to 128 experts.
 
-## 10. Claim 6: balance the table by word frequency
+## 10. Claim 6: fill the table in frequency order, one expert set per word
 
-**Why.** If stability is what matters for loss, any fixed table should do; balancing changes only the load.
+**Why.** A table decides which words share an expert. In a random table a rare word shares its expert with common words, whose many uses dominate that expert's training, so the rare word gets little of it. Sorting words by frequency and cutting the list into runs of equal total frequency puts common words on experts of their own and rare words together, and it balances the load by construction. Spreading one word over several experts by context does the opposite: each expert sees only part of the word's uses.
 
-**Test.**
+**Test 1: six ways to fill the table.** 2 layers, width 32, 200 steps, top-1, no shared expert, all layers hashed.
 
-| Table | Web loss, 8 experts top-1 (short) | Web loss, 64 experts top-1 shared (long) | Busiest / average at 64 experts | Dropped at capacity 1.25 |
+| Table | 16 experts | 32 experts | 64 experts | 64 experts, vocabulary 16,000 | Busiest / average, 64 experts |
+|---|---|---|---|---|---|
+| Random | 5.071 | 5.070 | 5.066 | 6.629 | 3.46 / 3.55 |
+| Greedy balanced (common words spread first) | | 5.072 | 5.067 | | 3.39 / 3.16 |
+| Sorted by frequency, cut into equal runs | 5.058 | 5.044 | 5.046 | 6.619 | 3.11 / 2.90 |
+| Grouped by use (k-means on next-word counts) | 5.066 | | 5.044 | | 7.89 / 7.15 |
+| Grouped by use, then cut into equal runs | 5.070 | 5.051 | 5.038 | 6.637 | 3.34 / 3.05 |
+| Learned router throughout | | | 5.193 | | 4.79 / 4.45 |
+
+The sorted table beat random at every point (-0.013, -0.026, -0.020, -0.010) and kept the lowest load. Grouping words by use helped at some points and not others, and without a load cut it overloads one expert 8 times. The greedy balanced table mixes common and rare words like a random one and gives the same loss.
+
+**Test 2: where the gain comes from.** Loss after input words of each frequency rank, 32 experts.
+
+| Table | Rank 1-10 | 11-100 | 101-1,000 | 1,001+ |
 |---|---|---|---|---|
-| Random | 5.065 | 4.835 | 3.86 / 4.09 | 20.6% |
-| Balanced by frequency | 5.077 | 4.833 | 3.27 / 3.27 | 10.5% |
-| Learned 50 steps, then frozen | 5.091 | | | |
-| Learned 100 steps, then frozen | 5.101 | | | |
-| Learned throughout | 5.144 | 4.875 | 3.68 / 3.15 | 15.2% |
+| Random | 5.000 | 4.844 | 5.120 | 5.258 |
+| Greedy balanced | 5.014 | 4.844 | 5.132 | 5.244 |
+| Sorted | 4.990 | 4.821 | 5.120 | 5.185 |
 
-Random and balanced tables give the same loss within noise. Balancing halves the overflow and brings the busiest expert to the limit of claim 1. Freezing a learned router's choices helps, but is no better than a table fixed from step one. Hash Layers also found random and balanced tables equal in loss.
+The gain sits after rare words (-0.073), as the reason above predicts.
 
-**Where it is weaker.** StableMoE's frozen learned router beat Hash Layers at a 124M backbone. A learned assignment may gain value with model size and training length.
+**Test 3: when it matters.** With a shared expert and 2 experts per word, sorted and random tie (5.045 vs 5.047), because one expert carries a smaller share of the word's output. With long training (width 8, vocabulary 1,000, 32 experts, 2,400 steps, 44 tokens per weight) the sorted table stays ahead (3.399 vs 3.417).
+
+**Test 4: one expert set per word.** Spread the most common words over experts by a fixed hash of the previous word.
+
+| Words spread by the previous word | Web loss, 8 experts (short) | Long training, half the rows reversed |
+|---|---|---|
+| None (plain table) | 5.065 | 3.154 |
+| Top 10 / top 20 | 5.107 (top 10) | 3.161 (top 20) |
+| Top 100 | 5.155 | |
+| All words | 5.184 | 3.139 |
+| Learned router | 5.144 | 3.129 |
+
+Spreading words costs up to 0.119 on web text, more than a learned router loses. On text where words have two jobs, spreading every word wins back part of the table's loss, but less than a learned layer does (Section 11.2).
+
+**Test 5: copy a learned router.** Freezing a learned router's choices after 50 or 100 steps gave 5.091 and 5.101, against 5.065 for a random table: no better than any fixed table.
+
+**Where it is weaker.** The sorted table's gain is 0.01 to 0.03, near the noise of single runs, but it held at all 5 points with one expert per word. StableMoE's frozen learned router beat Hash Layers at a 124M backbone, so a learned assignment may gain value with model size.
 
 ## 11. Claim 7: which layers should use a table
 
@@ -368,7 +396,7 @@ With half the rows reversed, hashing both layers went from ahead to behind durin
 | Early layers, where a learned router routes by word anyway | A table costs no extra load and no loss | 3, 4 |
 | One expert per word, no shared expert, many experts | A table also trains faster early | 5 |
 | Shared expert and several experts per word, long training | Either; they tie in loss | 4, 5 |
-| Building the table | Balance by frequency; random gives the same loss but more overload | 6 |
+| Building the table | Sort words by frequency and cut into E runs of equal total frequency; keep each word on one expert set; do not copy a learned router | 6 |
 | Which layers | Hash the first layer or first few: they hold most of the early gain. Keep learned routers in later layers, so words with context-dependent jobs can be split when training is long | 7 |
 
 ## 13. Limits

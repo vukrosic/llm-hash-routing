@@ -381,3 +381,21 @@ Churn is the same in every layer (0.58-0.74), so the gain follows how much the l
 Gap along training at 50%: -0.032, -0.009, -0.006, 0.000, +0.023, +0.025. Test-time context cost rose to +0.009 (L1 +0.007). One learned layer wins it all back. 4 layers at the same steps: all arms tie (learned 3.122, first 3 hashed 3.119, last 3 hashed 3.128, all hashed 3.120).
 
 Takeaway: hash the first layer(s) for the early gain; keep learned routers later, because the table only loses when words need context-dependent experts after long training, and one learned layer fixes that. Paper claim 7.
+
+## How to fill the table (seventh round)
+
+Question: which word-to-expert assignment trains best? 2 layers, width 32, vocabulary 4,000, 200 steps, top-1, no shared expert, all layers hashed. New flags: `--hashtype sorted|cluster|clusterbal`, `--pairhash N`.
+
+| Table | 16 experts | 32 experts | 64 experts | 64 experts, vocab 16,000 |
+|---|---|---|---|---|
+| Random | 5.071 | 5.070 | 5.066 | 6.629 |
+| Sorted by frequency, cut into equal-frequency runs | 5.058 | 5.044 | 5.046 | 6.619 |
+| Grouped by next-word use (k-means) | 5.066 | | 5.044 | |
+| Grouped by use, then equal-frequency cut | 5.070 | 5.051 | 5.038 | 6.637 |
+
+- The sorted table beats random at every point and has the lowest load (busiest/average 3.11 vs 3.46 at 64 experts). The gain sits after rare input words (rank 1,001+: 5.185 vs 5.258).
+- Greedy balanced mixing equals random. Grouping by use is inconsistent and, without the cut, overloads one expert 7.9 times the average.
+- With a shared expert and top-2, the method does not matter (5.045 vs 5.047). In long training (2,400 steps) sorted still wins (3.399 vs 3.417).
+- Spreading common words over experts by the previous token costs loss on web text (all words: 5.184 vs 5.065). On half-reversed text it recovers part of the table's loss (3.139 vs 3.154; learned 3.129).
+
+Takeaway: keep each word on one expert set, sort words by frequency and cut into runs of equal total frequency. Paper claim 6.

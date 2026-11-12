@@ -27,7 +27,8 @@ p.add_argument("--hashw", default="router", choices=["router", "equal"]); p.add_
 p.add_argument("--noshared", action="store_true", help="no shared expert; routed experts take the full active width")
 p.add_argument("--rev", type=float, default=0.0, help="share of training rows with reversed word order (same words, different job)")
 p.add_argument("--rlr", type=float, default=1.0, help="router learning rate as a multiple of --elr (0 = router frozen at init)")
-p.add_argument("--hashtype", default="random", choices=["random", "balanced"], help="balanced: greedy assignment so every expert gets equal token frequency")
+p.add_argument("--hashtype", default="random", choices=["random", "balanced", "sorted", "cluster", "clusterbal"], help="balanced: greedy assignment so every expert gets equal token frequency; sorted: tokens in frequency order cut into E runs of equal total frequency (an expert holds words of similar frequency); cluster: words grouped by what follows them (k-means on next-word counts), so an expert holds words used alike; clusterbal: words ordered by cluster, then cut into E runs of equal total frequency (grouped by use and balanced)")
+p.add_argument("--pairhash", type=int, default=0, help="N > 0: the N most common words get their table experts shifted by a fixed hash of the previous token, so their uses spread over experts by context (still fixed, no learning)")
 p.add_argument("--rin", default="hidden", choices=["hidden", "emb"], help="router input: the layer's hidden state, or the token embedding only (a learned per-token router)")
 p.add_argument("--cool", type=float, default=0.3, help="share of steps in the final linear learning-rate cooldown")
 p.add_argument("--rehash", type=float, default=0.0, help="every 25 steps, give this share of tokens new random experts in hashed layers (forced churn)")
@@ -105,6 +106,7 @@ def uni(*shape, fan_in):  # nn.Linear's default init
 
 
 FREQ = None  # set in main() before the model is built
+ROWS = None
 
 
 def hash_table(V, E, k, seed):
@@ -112,6 +114,25 @@ def hash_table(V, E, k, seed):
     balanced: tokens in a random order within frequency, each given the k experts with the least frequency so far."""
     g = torch.Generator().manual_seed(1000 + seed)
     if a.hashtype == "random": return torch.stack([torch.randperm(E, generator=g)[:k] for _ in range(V)])
+    if a.hashtype == "sorted":
+        order = np.argsort(-FREQ[:V], kind="stable"); cum = np.cumsum(FREQ[order]) / FREQ[:V].sum()
+        e0 = np.minimum((cum - FREQ[order] / FREQ[:V].sum() / 2) * E, E - 1).astype(np.int64); out = np.zeros((V, k), np.int64)
+        out[order] = (e0[:, None] + np.arange(k)[None] * (E // k)) % E; return torch.tensor(out)
+    def cut(order):  # walk tokens in this order, cut into E runs of equal total frequency
+        cum = np.cumsum(FREQ[order]) / FREQ[:V].sum(); e0 = np.minimum((cum - FREQ[order] / FREQ[:V].sum() / 2) * E, E - 1).astype(np.int64)
+        out = np.zeros((V, k), np.int64); out[order] = (e0[:, None] + np.arange(k)[None] * (E // k)) % E; return torch.tensor(out)
+    if a.hashtype in ("cluster", "clusterbal"):  # next-word profile of each word (top 256 next words), k-means into E groups
+        r = ROWS[:2000]; cur, nxt = r[:, :-1].reshape(-1), r[:, 1:].reshape(-1); top = np.argsort(-FREQ[:V])[:256]; col = np.full(V, -1); col[top] = np.arange(256)
+        M = np.zeros((V, 257)); np.add.at(M, (cur, np.where(col[nxt] >= 0, col[nxt], 256)), 1); M = M / np.maximum(M.sum(1, keepdims=True), 1); M = np.sqrt(M)
+        rng = np.random.default_rng(seed); C = M[rng.choice(np.argsort(-FREQ[:V])[:E * 4], E, replace=False)]
+        for _ in range(15):
+            d = ((M[:, None] - C[None]) ** 2).sum(-1); lab = d.argmin(1)
+            for e in range(E):
+                if (lab == e).any(): C[e] = M[lab == e].mean(0)
+        d = ((M[:, None] - C[None]) ** 2).sum(-1)
+        if a.hashtype == "clusterbal":
+            lab = d.argmin(1); proj = M @ rng.standard_normal(M.shape[1]); return cut(np.lexsort((proj, lab)))  # within a cluster, neighbours by a fixed direction
+        return torch.tensor(np.argsort(d, 1)[:, :k])
     load = np.zeros(E); out = np.zeros((V, k), np.int64); jitter = torch.rand(E, generator=g).numpy() * 1e-9
     for t in np.argsort(-FREQ[:V], kind="stable"):
         ch = np.argsort(load + jitter)[:k]; out[t] = ch; load[ch] += FREQ[t]
@@ -126,6 +147,8 @@ class MoE(nn.Module):
         s.eg, s.eu, s.ed = uni(E, he, d, fan_in=d), uni(E, he, d, fan_in=d), uni(E, d, he, fan_in=he)  # [expert, out, in]
         s.router = nn.Linear(d, E, bias=False); s.register_buffer("bias", torch.zeros(E))
         if hashed: s.register_buffer("tid2eid", hash_table(V, E, k, layer))
+        if hashed and a.pairhash:
+            com = torch.zeros(V, dtype=torch.bool); com[torch.tensor(np.argsort(-FREQ[:V - 1])[:a.pairhash].copy())] = True; s.register_buffer("common", com)
         s.register_buffer("cnt", torch.zeros(V, E))  # training-time token -> expert counts (for --freeze)
         s.idx = None; s.force = None  # test-time per-token table (--ctx)
         s.stat = [0.0, 0.0, 0, 0.0, 0]; s.skip = None  # + last-quarter busiest/average sum and count  # training: summed drop share, summed busiest/average load, batches
@@ -135,6 +158,10 @@ class MoE(nn.Module):
         z = s.router(hf if a.rin == "hidden" else F.rms_norm(s.x0, (d,)).reshape(-1, d))
         sc = torch.sqrt(F.softplus(z)) if a.score == "sqrtsoftplus" else torch.sigmoid(z)
         idx = s.tid2eid[ids.reshape(-1)] if s.hashed else (sc + s.bias).topk(s.k, -1).indices
+        if s.hashed and a.pairhash:  # common words: shift all k experts by a fixed hash of the previous token (distinct experts stay distinct)
+            prev = torch.cat([torch.full_like(ids[:, :1], s.tid2eid.shape[0] - 1), ids[:, :-1]], 1).reshape(-1)
+            off = (prev * 2654435761 + 12345) % 1000003 % s.E; c = s.common[ids.reshape(-1)]
+            idx = torch.where(c[:, None], (idx + off[:, None]) % s.E, idx)
         if s.force is not None: tab, known = s.force; idx = torch.where(known[ids.reshape(-1)][:, None], tab[ids.reshape(-1)], idx)
         if s.hashed and a.unk == "router": u = ids.reshape(-1) == s.tid2eid.shape[0] - 1; idx = torch.where(u[:, None], (sc + s.bias).topk(s.k, -1).indices, idx)
         w = torch.full_like(idx, 1.0 / s.k, dtype=hf.dtype) if (s.hashed and a.hashw == "equal") else sc.gather(1, idx)
@@ -228,6 +255,9 @@ def evaluate(m, W):
     rank = np.argsort(np.argsort(-W.freq)); rk_t = rank[W.val[:, 1:]]
     for lo, hi in ((0, 100), (100, 1000), (1000, 4000), (4000, 10 ** 9)):
         msk = (rk_t >= lo) & (rk_t < hi); r[f"web.tgt.{lo}"] = float(nll.numpy()[msk].mean()) if msk.any() else None
+    rk_i = rank[W.val[:, :-1]]  # loss after input words of each frequency band (the word that picked the expert)
+    for lo, hi in ((0, 10), (10, 100), (100, 1000), (1000, 10 ** 9)):
+        msk = (rk_i >= lo) & (rk_i < hi) & (W.val[:, :-1] != W.unk); r[f"web.in.{lo}"] = float(nll.numpy()[msk].mean()) if msk.any() else None
     if a.moe: r.update(routing(m, W))
     if a.rev:
         xr = torch.tensor(W.valrev, device=DEV); lr_ = m(xr[:, :-1]); r["web.rev"] = float(F.cross_entropy(lr_.reshape(-1, lr_.shape[-1]).float(), xr[:, 1:].reshape(-1)))
@@ -297,8 +327,8 @@ def ctx_cost(m, W):
 
 # ---------------- train ----------------
 def main():
-    global FREQ
-    W = World(a.V, a.L, a.steps * a.batch * a.L); FREQ = W.freq; m = Model(W.V, a.width, a.layers, a.heads).to(DEV)
+    global FREQ, ROWS
+    W = World(a.V, a.L, a.steps * a.batch * a.L); FREQ = W.freq; ROWS = W.rows; m = Model(W.V, a.width, a.layers, a.heads).to(DEV)
     mats = [w for n, w in m.named_parameters() if w.ndim >= 2 and n.startswith("blocks") and "router" not in n]
     rout = [w for n, w in m.named_parameters() if "router" in n]
     rest = [w for w in m.parameters() if all(w is not z for z in mats + rout)]
