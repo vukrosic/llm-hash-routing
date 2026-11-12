@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" font-family="Helvetica, Arial, sans-serif" font-size="13">
+<defs><marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker><marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c0504d"/></marker></defs>
+<rect x="5" y="5" width="214" height="290" rx="12" fill="#fafafa" stroke="#d0d0d0"/><text x="112.0" y="34" font-size="14.5" font-weight="bold" fill="#222" text-anchor="middle">Experts per word</text>
+<text x="112" y="58" text-anchor="middle" fill="#555">early gain, no shared expert</text><line x1="35" y1="210" x2="195" y2="210" stroke="#888"/>
+<rect x="50" y="90" width="36" height="120" fill="#d9822b"/><text x="68" y="228" text-anchor="middle" fill="#555">1</text>
+<rect x="98" y="174" width="36" height="36" fill="#d9822b"/><text x="116" y="228" text-anchor="middle" fill="#555">2</text>
+<rect x="146" y="192" width="36" height="18" fill="#d9822b"/><text x="164" y="228" text-anchor="middle" fill="#555">4</text>
+<text x="112" y="268" text-anchor="middle" fill="#c0504d" font-weight="bold">more per word, smaller gain</text>
+<rect x="230" y="5" width="214" height="290" rx="12" fill="#fafafa" stroke="#d0d0d0"/><text x="337.0" y="34" font-size="14.5" font-weight="bold" fill="#222" text-anchor="middle">Shared expert</text>
+<text x="337" y="58" text-anchor="middle" fill="#555">early gain</text><rect x="268" y="70" width="12" height="12" fill="#d9822b"/><text x="285" y="81" fill="#555" font-size="12">none</text><rect x="330" y="70" width="12" height="12" fill="#4a7fc1"/><text x="347" y="81" fill="#555" font-size="12">shared</text>
+<line x1="255" y1="210" x2="420" y2="210" stroke="#888"/>
+<rect x="260" y="90" width="30" height="120" fill="#d9822b"/>
+<rect x="292" y="138" width="30" height="72" fill="#4a7fc1"/>
+<rect x="347" y="174" width="30" height="36" fill="#d9822b"/>
+<rect x="379" y="206" width="30" height="4" fill="#4a7fc1"/>
+<text x="291" y="228" text-anchor="middle" fill="#555">1 per word</text><text x="378" y="228" text-anchor="middle" fill="#555">2 per word</text>
+<text x="337" y="268" text-anchor="middle" fill="#c0504d" font-weight="bold">shared + 2 per word: zero</text>
+<rect x="455" y="5" width="214" height="290" rx="12" fill="#fafafa" stroke="#d0d0d0"/><text x="562.0" y="34" font-size="14.5" font-weight="bold" fill="#222" text-anchor="middle">Number of experts</text>
+<text x="562" y="58" text-anchor="middle" fill="#555">early gain, 1 per word</text><line x1="485" y1="210" x2="645" y2="210" stroke="#888"/>
+<rect x="500" y="172" width="36" height="38" fill="#d9822b"/><text x="518" y="228" text-anchor="middle" fill="#555">4</text>
+<rect x="548" y="110" width="36" height="100" fill="#d9822b"/><text x="566" y="228" text-anchor="middle" fill="#555">8</text>
+<rect x="596" y="78" width="36" height="132" fill="#d9822b"/><text x="614" y="228" text-anchor="middle" fill="#555">16</text>
+<text x="562" y="268" text-anchor="middle" fill="#2e7d32" font-weight="bold">more experts, bigger gain</text>
+<rect x="680" y="5" width="214" height="290" rx="12" fill="#fafafa" stroke="#d0d0d0"/><text x="787.0" y="34" font-size="14.5" font-weight="bold" fill="#222" text-anchor="middle">Building the table</text>
+<rect x="698" y="56" width="178" height="58" rx="8" fill="#fff" stroke="#4c9a5a" stroke-width="1.5"/><text x="710" y="80" font-weight="bold">balanced table</text><text x="710" y="100" fill="#555">same loss, less overload</text><circle cx="855" cy="76" r="11" fill="#4c9a5a"/><path d="M849,76 L854,81 L862,71" stroke="#fff" stroke-width="2.5" fill="none"/>
+<rect x="698" y="124" width="178" height="58" rx="8" fill="#fff" stroke="#999" stroke-width="1.5"/><text x="710" y="148" font-weight="bold">random table</text><text x="710" y="168" fill="#555">same loss, more overload</text><circle cx="855" cy="144" r="11" fill="#999"/><text x="855" y="149" fill="#fff" font-size="16" font-weight="bold" text-anchor="middle">≈</text>
+<rect x="698" y="192" width="178" height="58" rx="8" fill="#fff" stroke="#999" stroke-width="1.5"/><text x="710" y="216" font-weight="bold">learned, then frozen</text><text x="710" y="236" fill="#555">no better</text><circle cx="855" cy="212" r="11" fill="#999"/><text x="855" y="217" fill="#fff" font-size="16" font-weight="bold" text-anchor="middle">≈</text>
+<text x="787" y="274" text-anchor="middle" fill="#555">balance it by word frequency</text>
+</svg>

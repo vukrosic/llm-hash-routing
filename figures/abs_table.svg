@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" font-family="Helvetica, Arial, sans-serif" font-size="13">
+<defs><marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker><marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c0504d"/></marker></defs>
+<rect x="5" y="5" width="440" height="290" rx="12" fill="#fafafa" stroke="#d0d0d0"/><text x="225.0" y="34" font-size="14.5" font-weight="bold" fill="#222" text-anchor="middle">Learned router</text>
+<text x="225" y="56" text-anchor="middle" fill="#555">where the word “cat” goes during training</text>
+<text x="27" y="96" fill="#555">expert 1</text><line x1="95" y1="92" x2="430" y2="92" stroke="#ddd" stroke-dasharray="4 4"/>
+<text x="27" y="144" fill="#555">expert 2</text><line x1="95" y1="140" x2="430" y2="140" stroke="#ddd" stroke-dasharray="4 4"/>
+<text x="27" y="192" fill="#555">expert 3</text><line x1="95" y1="188" x2="430" y2="188" stroke="#ddd" stroke-dasharray="4 4"/>
+<text x="130" y="232" text-anchor="middle" fill="#777" font-size="12">step 0</text>
+<text x="200" y="232" text-anchor="middle" fill="#777" font-size="12">step 50</text>
+<text x="270" y="232" text-anchor="middle" fill="#777" font-size="12">step 100</text>
+<text x="340" y="232" text-anchor="middle" fill="#777" font-size="12">step 150</text>
+<text x="410" y="232" text-anchor="middle" fill="#777" font-size="12">step 200</text>
+<line x1="151" y1="140" x2="179" y2="92" stroke="#c0504d" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#r)"/>
+<line x1="221" y1="92" x2="249" y2="188" stroke="#c0504d" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#r)"/>
+<line x1="291" y1="188" x2="319" y2="92" stroke="#c0504d" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#r)"/>
+<line x1="361" y1="92" x2="389" y2="140" stroke="#c0504d" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#r)"/>
+<rect x="110" y="128" width="40" height="24" rx="6" fill="#fbe3c8" stroke="#d9822b" stroke-width="1.5"/><text x="130" y="145" text-anchor="middle" font-weight="bold">cat</text>
+<rect x="180" y="80" width="40" height="24" rx="6" fill="#fbe3c8" stroke="#d9822b" stroke-width="1.5"/><text x="200" y="97" text-anchor="middle" font-weight="bold">cat</text>
+<rect x="250" y="176" width="40" height="24" rx="6" fill="#fbe3c8" stroke="#d9822b" stroke-width="1.5"/><text x="270" y="193" text-anchor="middle" font-weight="bold">cat</text>
+<rect x="320" y="80" width="40" height="24" rx="6" fill="#fbe3c8" stroke="#d9822b" stroke-width="1.5"/><text x="340" y="97" text-anchor="middle" font-weight="bold">cat</text>
+<rect x="390" y="128" width="40" height="24" rx="6" fill="#fbe3c8" stroke="#d9822b" stroke-width="1.5"/><text x="410" y="145" text-anchor="middle" font-weight="bold">cat</text>
+<text x="225" y="270" text-anchor="middle" fill="#c0504d" font-weight="bold">each move gives “cat” to an expert that has not learned it</text>
+<rect x="455" y="5" width="440" height="290" rx="12" fill="#fafafa" stroke="#d0d0d0"/><text x="675.0" y="34" font-size="14.5" font-weight="bold" fill="#222" text-anchor="middle">Fixed table</text>
+<text x="675" y="56" text-anchor="middle" fill="#555">where the word “cat” goes during training</text>
+<text x="477" y="96" fill="#555">expert 1</text><line x1="545" y1="92" x2="880" y2="92" stroke="#ddd" stroke-dasharray="4 4"/>
+<text x="477" y="144" fill="#555">expert 2</text><line x1="545" y1="140" x2="880" y2="140" stroke="#ddd" stroke-dasharray="4 4"/>
+<text x="477" y="192" fill="#555">expert 3</text><line x1="545" y1="188" x2="880" y2="188" stroke="#ddd" stroke-dasharray="4 4"/>
+<text x="580" y="232" text-anchor="middle" fill="#777" font-size="12">step 0</text>
+<text x="650" y="232" text-anchor="middle" fill="#777" font-size="12">step 50</text>
+<text x="720" y="232" text-anchor="middle" fill="#777" font-size="12">step 100</text>
+<text x="790" y="232" text-anchor="middle" fill="#777" font-size="12">step 150</text>
+<text x="860" y="232" text-anchor="middle" fill="#777" font-size="12">step 200</text>
+<line x1="601" y1="140" x2="629" y2="140" stroke="#4c9a5a" stroke-width="2.5"/>
+<line x1="671" y1="140" x2="699" y2="140" stroke="#4c9a5a" stroke-width="2.5"/>
+<line x1="741" y1="140" x2="769" y2="140" stroke="#4c9a5a" stroke-width="2.5"/>
+<line x1="811" y1="140" x2="839" y2="140" stroke="#4c9a5a" stroke-width="2.5"/>
+<rect x="560" y="128" width="40" height="24" rx="6" fill="#fbe3c8" stroke="#d9822b" stroke-width="1.5"/><text x="580" y="145" text-anchor="middle" font-weight="bold">cat</text>
+<rect x="630" y="128" width="40" height="24" rx="6" fill="#fbe3c8" stroke="#d9822b" stroke-width="1.5"/><text x="650" y="145" text-anchor="middle" font-weight="bold">cat</text>
+<rect x="700" y="128" width="40" height="24" rx="6" fill="#fbe3c8" stroke="#d9822b" stroke-width="1.5"/><text x="720" y="145" text-anchor="middle" font-weight="bold">cat</text>
+<rect x="770" y="128" width="40" height="24" rx="6" fill="#fbe3c8" stroke="#d9822b" stroke-width="1.5"/><text x="790" y="145" text-anchor="middle" font-weight="bold">cat</text>
+<rect x="840" y="128" width="40" height="24" rx="6" fill="#fbe3c8" stroke="#d9822b" stroke-width="1.5"/><text x="860" y="145" text-anchor="middle" font-weight="bold">cat</text>
+<text x="675" y="270" text-anchor="middle" fill="#2e7d32" font-weight="bold">“cat” stays with the expert that is learning it</text>
+</svg>
