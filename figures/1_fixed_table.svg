@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker>
+<marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c0504d"/></marker></defs>
+<rect width="1200" height="675" fill="#fff"/>
+<text x="600" y="68" font-size="44" font-weight="bold" text-anchor="middle" fill="#1a1a1a">You don't need to train the router</text>
+<text x="600" y="110" font-size="24" text-anchor="middle" fill="#555">Fix in advance which expert each word goes to</text>
+<rect x="40" y="140" width="540" height="500" rx="18" fill="#f2f8f3" stroke="#cfe3d3"/>
+<text x="310" y="190" font-size="30" font-weight="bold" text-anchor="middle" fill="#2e7d32">Fixed table</text>
+<g font-size="26" text-anchor="middle">
+<rect x="80" y="225" width="120" height="54" rx="10" fill="#fde3c8" stroke="#d9822b"/><text x="140" y="261">the</text>
+<rect x="80" y="310" width="120" height="54" rx="10" fill="#e3ecf8" stroke="#4a7fc1"/><text x="140" y="346">cat</text>
+<rect x="80" y="395" width="120" height="54" rx="10" fill="#e3ecf8" stroke="#4a7fc1"/><text x="140" y="431">ran</text>
+<rect x="80" y="480" width="120" height="54" rx="10" fill="#e3ecf8" stroke="#4a7fc1"/><text x="140" y="516">house</text>
+<rect x="380" y="225" width="160" height="54" rx="10" fill="#dff0e2" stroke="#4c9a5a"/><text x="460" y="261">Expert 12</text>
+<rect x="380" y="310" width="160" height="54" rx="10" fill="#dff0e2" stroke="#4c9a5a"/><text x="460" y="346">Expert 5</text>
+<rect x="380" y="395" width="160" height="54" rx="10" fill="#dff0e2" stroke="#4c9a5a"/><text x="460" y="431">Expert 9</text>
+<rect x="380" y="480" width="160" height="54" rx="10" fill="#dff0e2" stroke="#4c9a5a"/><text x="460" y="516">Expert 3</text>
+</g>
+<g stroke="#333" stroke-width="3" marker-end="url(#a)"><line x1="204" y1="252" x2="374" y2="252"/><line x1="204" y1="337" x2="374" y2="337"/><line x1="204" y1="422" x2="374" y2="422"/><line x1="204" y1="507" x2="374" y2="507"/></g>
+<text x="310" y="600" font-size="25" text-anchor="middle" fill="#2e7d32" font-weight="bold">same expert at every step</text>
+<rect x="620" y="140" width="540" height="500" rx="18" fill="#fcf1f0" stroke="#efd0ce"/>
+<text x="890" y="190" font-size="30" font-weight="bold" text-anchor="middle" fill="#c0504d">Learned router</text>
+<g font-size="26" text-anchor="middle">
+<rect x="660" y="368" width="120" height="54" rx="10" fill="#e3ecf8" stroke="#4a7fc1"/><text x="720" y="404">cat</text>
+<rect x="930" y="235" width="190" height="64" rx="10" fill="#fff" stroke="#bbb"/><text x="1025" y="263">Expert 3</text><text x="1025" y="289" font-size="19" fill="#777">step 100</text>
+<rect x="930" y="363" width="190" height="64" rx="10" fill="#fff" stroke="#bbb"/><text x="1025" y="391">Expert 7</text><text x="1025" y="417" font-size="19" fill="#777">step 200</text>
+<rect x="930" y="491" width="190" height="64" rx="10" fill="#fff" stroke="#bbb"/><text x="1025" y="519">Expert 2</text><text x="1025" y="545" font-size="19" fill="#777">step 300</text>
+</g>
+<g stroke="#c0504d" stroke-width="3" marker-end="url(#r)" fill="none"><path d="M784,385 L924,272"/><path d="M784,395 L924,395"/><path d="M784,405 L924,518"/></g>
+<text x="890" y="600" font-size="25" text-anchor="middle" fill="#c0504d" font-weight="bold">each move: the new expert starts over</text>
+</svg>

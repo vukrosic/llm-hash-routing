@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" font-family="Helvetica, Arial, sans-serif">
+<rect width="1200" height="675" fill="#fff"/>
+<text x="600" y="66" font-size="42" font-weight="bold" text-anchor="middle" fill="#1a1a1a">The speed-up fades in wide models</text>
+<text x="600" y="108" font-size="24" text-anchor="middle" fill="#555">How much lower the fixed table's loss is than a learned router's, same training</text>
+<line x1="150" y1="530" x2="1050" y2="530" stroke="#888" stroke-width="2"/>
+<rect x="220" y="200" width="180" height="330" fill="#4c9a5a" rx="6"/><text x="310" y="186" font-size="30" font-weight="bold" text-anchor="middle">0.094</text>
+<rect x="510" y="411" width="180" height="119" fill="#4c9a5a" rx="6"/><text x="600" y="397" font-size="30" font-weight="bold" text-anchor="middle">0.034</text>
+<rect x="800" y="526" width="180" height="4" fill="#4c9a5a"/><text x="890" y="508" font-size="30" font-weight="bold" text-anchor="middle">tie</text>
+<g font-size="26" text-anchor="middle" fill="#333"><text x="310" y="568">width 32</text><text x="600" y="568">width 64</text><text x="890" y="568">width 128</text></g>
+<text x="600" y="618" font-size="23" text-anchor="middle" fill="#222">A wide model's router moves words just as often, but each move costs 6× less.</text>
+<text x="600" y="650" font-size="23" text-anchor="middle" fill="#c0504d" font-weight="bold">The overload rule does not depend on width.</text>
+</svg>

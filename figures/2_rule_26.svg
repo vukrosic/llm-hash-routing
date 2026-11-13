@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" font-family="Helvetica, Arial, sans-serif"><rect width="1200" height="675" fill="#fff"/>
+<text x="600" y="66" font-size="42" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Why a fixed table breaks past 26 experts</text>
+<text x="600" y="108" font-size="24" text-anchor="middle" fill="#555">“the” is 1 in 26 tokens, and every “the” goes to the same expert</text>
+<rect x="40" y="135" width="540" height="450" rx="18" fill="#fafafa" stroke="#ddd"/>
+<text x="310" y="182" font-size="30" font-weight="bold" text-anchor="middle" fill="#2e7d32">26 experts: it fits</text>
+<rect x="75.0" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="93.1" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="111.2" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="129.2" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="147.3" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="165.4" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="183.5" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="201.5" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="219.6" y="280.0" width="13.0" height="220.0" fill="#d9822b"/>
+<rect x="237.7" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="255.8" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="273.8" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="291.9" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="310.0" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="328.1" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="346.2" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="364.2" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="382.3" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="400.4" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="418.5" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="436.5" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="454.6" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="472.7" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="490.8" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="508.8" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<rect x="526.9" y="280.0" width="13.0" height="220.0" fill="#4a7fc1"/>
+<line x1="65" y1="280.0" x2="555" y2="280.0" stroke="#333" stroke-width="2" stroke-dasharray="7,5"/>
+<text x="555" y="272.0" font-size="19" text-anchor="end" fill="#333">fair share</text>
+<line x1="65" y1="500" x2="555" y2="500" stroke="#888"/>
+<text x="226.1" y="268" font-size="23" font-weight="bold" text-anchor="middle" fill="#d9822b">“the”</text>
+<text x="310" y="548" font-size="24" font-weight="bold" text-anchor="middle" fill="#2e7d32">fair share is 1/26, so “the” fits</text>
+<rect x="620" y="135" width="540" height="450" rx="18" fill="#fafafa" stroke="#ddd"/>
+<text x="890" y="182" font-size="30" font-weight="bold" text-anchor="middle" fill="#c0504d">64 experts: overloaded</text>
+<rect x="655.0" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="662.3" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="669.7" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="677.0" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="684.4" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="691.7" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="699.1" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="706.4" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="713.8" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="721.1" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="728.4" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="735.8" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="743.1" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="750.5" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="757.8" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="765.2" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="772.5" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="779.8" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="787.2" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="794.5" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="801.9" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="809.2" y="280.0" width="5.3" height="220.0" fill="#d9822b"/>
+<rect x="816.6" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="823.9" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="831.2" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="838.6" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="845.9" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="853.3" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="860.6" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="868.0" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="875.3" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="882.7" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="890.0" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="897.3" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="904.7" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="912.0" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="919.4" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="926.7" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="934.1" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="941.4" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="948.8" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="956.1" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="963.4" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="970.8" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="978.1" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="985.5" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="992.8" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1000.2" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1007.5" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1014.8" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1022.2" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1029.5" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1036.9" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1044.2" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1051.6" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1058.9" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1066.2" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1073.6" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1080.9" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1088.3" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1095.6" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1103.0" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1110.3" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<rect x="1117.7" y="410.6" width="5.3" height="89.4" fill="#4a7fc1"/>
+<line x1="645" y1="410.6" x2="1135" y2="410.6" stroke="#333" stroke-width="2" stroke-dasharray="7,5"/>
+<text x="1135" y="402.6" font-size="19" text-anchor="end" fill="#333">fair share</text>
+<line x1="645" y1="500" x2="1135" y2="500" stroke="#888"/>
+<text x="811.9" y="268" font-size="23" font-weight="bold" text-anchor="start" fill="#d9822b">“the”: 2.4× its fair share</text>
+<text x="890" y="548" font-size="24" font-weight="bold" text-anchor="middle" fill="#c0504d">fair share is 1/64, “the” still needs 1/26</text>
+<text x="600" y="630" font-size="25" text-anchor="middle" fill="#222">DeepSeek-V4: 384 experts, 6 chosen per token = 64 experts per chosen expert</text></svg>

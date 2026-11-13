@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker>
+<marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d9822b"/></marker></defs>
+<rect width="1200" height="675" fill="#fff"/>
+<text x="600" y="66" font-size="40" font-weight="bold" text-anchor="middle" fill="#1a1a1a">The fix: give the commonest words to the shared expert</text>
+<text x="600" y="108" font-size="24" text-anchor="middle" fill="#555">Every token already goes through the shared expert</text>
+<rect x="40" y="135" width="580" height="490" rx="18" fill="#fafafa" stroke="#ddd"/>
+<g font-size="26" text-anchor="middle">
+<rect x="70" y="175" width="90" height="50" rx="10" fill="#fde3c8" stroke="#d9822b"/><text x="115" y="209">the</text>
+<rect x="70" y="240" width="90" height="50" rx="10" fill="#fde3c8" stroke="#d9822b"/><text x="115" y="274">,</text>
+<rect x="70" y="305" width="90" height="50" rx="10" fill="#fde3c8" stroke="#d9822b"/><text x="115" y="339">.</text>
+<rect x="70" y="440" width="90" height="50" rx="10" fill="#e3ecf8" stroke="#4a7fc1"/><text x="115" y="474">cat</text>
+<rect x="70" y="510" width="90" height="50" rx="10" fill="#e3ecf8" stroke="#4a7fc1"/><text x="115" y="544">ran</text>
+<rect x="360" y="215" width="230" height="100" rx="14" fill="#dbe7f7" stroke="#4a7fc1" stroke-width="2"/><text x="475" y="258" font-weight="bold">Shared expert</text><text x="475" y="292" font-size="20" fill="#555">every token</text>
+</g>
+<g font-size="20" text-anchor="middle">
+<rect x="330" y="455" width="52" height="44" rx="8" fill="#dff0e2" stroke="#4c9a5a"/><text x="356" y="484">E1</text>
+<rect x="390" y="455" width="52" height="44" rx="8" fill="#dff0e2" stroke="#4c9a5a"/><text x="416" y="484">E2</text>
+<rect x="450" y="455" width="52" height="44" rx="8" fill="#dff0e2" stroke="#4c9a5a"/><text x="476" y="484">E3</text>
+<rect x="510" y="455" width="52" height="44" rx="8" fill="#dff0e2" stroke="#4c9a5a"/><text x="536" y="484">E4</text>
+<text x="446" y="440" font-size="20" fill="#4c9a5a">fixed-table experts</text>
+</g>
+<g stroke="#d9822b" stroke-width="3" marker-end="url(#o)" fill="none"><path d="M164,200 L354,250"/><path d="M164,265 L354,265"/><path d="M164,330 L354,282"/></g>
+<g stroke="#333" stroke-width="3" marker-end="url(#a)" fill="none"><path d="M164,467 L324,477"/><path d="M164,535 C300,565 470,560 476,505"/></g>
+<text x="330" y="395" font-size="22" text-anchor="middle" fill="#d9822b" font-weight="bold">skip the table experts</text>
+<rect x="650" y="135" width="510" height="490" rx="18" fill="#fafafa" stroke="#ddd"/>
+<text x="905" y="185" font-size="26" font-weight="bold" text-anchor="middle" fill="#222">How far the table stays balanced</text>
+<g font-size="24">
+<text x="680" y="240" fill="#555">sent to</text><text x="680" y="266" fill="#555">shared</text><text x="950" y="240" fill="#555" text-anchor="middle">experts per</text><text x="950" y="266" fill="#555" text-anchor="middle">chosen expert</text><text x="1130" y="240" fill="#555" text-anchor="end">loss</text>
+<line x1="675" y1="285" x2="1135" y2="285" stroke="#ccc"/>
+<text x="680" y="335">none</text><text x="950" y="335" text-anchor="middle" font-weight="bold">26</text><text x="1130" y="335" text-anchor="end">–</text>
+<text x="680" y="395" fill="#d9822b" font-weight="bold">the , .</text><text x="950" y="395" text-anchor="middle" font-weight="bold" fill="#2e7d32">42</text><text x="1130" y="395" text-anchor="end">no change</text>
+<text x="680" y="455" fill="#d9822b" font-weight="bold">top 10</text><text x="950" y="455" text-anchor="middle" font-weight="bold" fill="#2e7d32">87</text><text x="1130" y="455" text-anchor="end">+0.018</text>
+</g>
+<text x="905" y="535" font-size="22" text-anchor="middle" fill="#222">DeepSeek-V4's 64 fits once</text>
+<text x="905" y="565" font-size="22" text-anchor="middle" fill="#222">the top 10 words are removed</text>
+<text x="600" y="658" font-size="19" text-anchor="middle" fill="#777">English web text, GPT-2 tokenizer; loss measured in tiny models</text>
+</svg>
