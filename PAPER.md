@@ -10,7 +10,7 @@ Give every word of the vocabulary its own fixed expert, and the experts that hol
 
 *Figure 1. A table cannot split a word, so the experts of the most common words are the busiest. Past 26 experts per chosen expert no table can balance, and only that ratio matters.*
 
-The same limit binds a learned router whenever it routes by word, and in our models it does: a learned router sent two thirds or more of each word's uses to one expert, and its busiest expert sat at the same limit. On web text, the fixed table never trains worse than a learned router. It is ahead early in training, because a learned router keeps moving words between experts. Each move takes a word away from the expert that has learned it and hands it to one that has not. The moves do not come from the router learning: a router frozen at its random start moves words just as often, because its input, the hidden state, keeps changing as the rest of the model trains. The lead shrinks as training goes on and is gone once each weight has seen a few hundred tokens with few experts; with many small experts it lasts longer.
+The same limit binds a learned router whenever it routes by word, and in our models it does: a learned router sent two thirds or more of each word's uses to one expert, and its busiest expert sat at the same limit. On web text, the fixed table never trains worse than a learned router. It is ahead early in training, because a learned router keeps moving words between experts. Each move takes a word away from the expert that has learned it and hands it to one that has not. The moves do not come from the router learning: a router frozen at its random start moves words just as often, because its input, the hidden state, keeps changing as the rest of the model trains. The lead shrinks as training goes on and is gone once each weight has seen a few hundred tokens with few experts; with many small experts it lasts longer. It also shrinks as the model gets wider and is gone at width 128: a wide model moves words just as often, but each move costs far less, so in large models the table's case rests on load and simplicity, not on loss.
 
 <img src="figures/abs_table.svg" width="100%">
 
@@ -83,6 +83,7 @@ These papers report that hash routing is competitive in loss. None gives the loa
 | 6 | Fill the table by frequency order cut into runs of equal total frequency: it balances the load and lowers loss after rare words. Spreading a word over experts costs loss | 10 |
 | 7 | The early gain comes from the first layer. A table loses only when words need context-dependent experts and training is long, and one learned layer wins it back | 11 |
 | 8 | Sending the few most common words only to the shared expert lifts the load limit at little loss; switching from a table to a learned router mid-training does not combine their strengths | 12 |
+| 9 | Moving one condition at a time toward large models keeps the order learned > random table > sorted table, except width: the table's lead shrinks with width and is gone at width 128, because each move costs less | 13 |
 
 Claims 1 and 2 are proven for any token frequencies and checked exactly on two tokenizers and in training. Claims 3 and 6 held in every setting tested; claim 4 held on web text in every setting and fails when many words have two jobs (claim 7). Claim 5's sizes are trends over 8 designs. Claim 7's first half held in 4 settings; its second half rests on 2-layer models and tied in a 4-layer model. Claim 8's load numbers are exact; its loss numbers are 2 repeats of each setting.
 
@@ -443,7 +444,43 @@ Every switch did worse than both the table and the learned router. With the copy
 
 **Takeaway.** Choose a table or a learned router per layer from the start (Claim 7); do not switch during training.
 
-## 13. Who should use it
+## 13. Claim 9: what changes on the way to large models
+
+**Test.** Starting from 16 experts, top-1, no shared expert, width 32, 2 layers, vocabulary 4,000 and 200 steps, move one condition at a time toward large models and train a learned router, a random table and a sorted table.
+
+| Condition moved | Table minus learned | Sorted minus random |
+|---|---|---|
+| None (3 runs each) | -0.094 | -0.020 |
+| Vocabulary 16,000 | -0.095 | -0.038 |
+| 4 layers | -0.115 | -0.018 |
+| Context 192 (same tokens per step) | -0.085 | -0.013 |
+| Batch 64, 50 steps (same tokens) | -0.146 | -0.024 |
+| Head size 32 instead of 8 | -0.082 | -0.023 |
+| Learning rates 2x | -0.107 | -0.016 |
+| 64 experts | -0.124 | -0.017 |
+| 3x the tokens (600 steps) | -0.053 | -0.015 |
+| Shared expert, top-2 of 32 | -0.030 | -0.006 |
+| Width 64 | -0.034 | -0.028 |
+| Width 128 | +0.007 | |
+| Vocabulary 16,000 + width 64 + 4 layers + shared top-2 of 32 | -0.043; at 400 steps -0.026 (sorted) | +0.015 |
+
+Every condition but width kept both orders. Larger vocabularies, bigger batches with fewer steps, and more experts made the table's lead larger; more training and a shared expert with top-2 made it smaller, as in Claims 4 and 5. Sorting helped most with the larger vocabulary, where there are more rare words, and did not help with a shared expert and top-2 (Claim 6).
+
+**Width is the condition that breaks the lead.** At 200 steps the lead is 0.094 at width 32, 0.034 at width 64 and gone at width 128. Width 64 at 100 steps still had a 0.120 lead, so the lead fades sooner in wider models rather than never existing.
+
+| Width | Learned router churn at steps 100 / 150 / 200 (layer 0) | Cost of forcing 50% of words to move every 25 steps |
+|---|---|---|
+| 32 | 0.64 / 0.57 / 0.40 | +0.233 |
+| 64 | 0.74 / 0.61 / 0.48 | |
+| 128 | 0.72 / 0.66 / 0.45 | +0.039 |
+
+A wider model moves words just as often, but each move costs 6 times less. A wide expert relearns a newly arrived word quickly, so the loss of moving it is small. Large models are thousands of units wide, so the table's early loss advantage should be small there; its value at scale is the load rule (Claims 1 and 2) and that it needs no router.
+
+**The fix of Claim 8 at a larger vocabulary.** With vocabulary 16,000, 64 experts, top-1 and a shared expert, sending the top 3 words to the shared expert changed web loss from 6.593 to 6.600, within noise.
+
+**Still to test.** Width beyond 128, and whether the cost per move keeps falling with width or levels off.
+
+## 14. Who should use it
 
 | Case | Recommendation | Claim |
 |---|---|---|
@@ -451,15 +488,16 @@ Every switch did worse than both the table and the learned router. With the copy
 | E/k above 1/p, with a capacity limit | The table overflows by the sum of max(0, p_i - c k/E): 5.4% at E/k = 64 and capacity 1.25. Balance it, or raise the capacity of the experts that hold the most common tokens | 2, 6 |
 | E/k above 1/p, dropless | The expert part of each step takes p E/k times the balanced time (2.4x at DeepSeek-V4's 384 / 6) | 1 |
 | Early layers, where a learned router routes by word anyway | A table costs no extra load and no loss | 3, 4 |
-| One expert per word, no shared expert, many experts | A table also trains faster early | 5 |
+| One expert per word, no shared expert, many experts, narrow model | A table also trains faster early; the gain shrinks with width and was gone at width 128 | 5, 9 |
 | Shared expert and several experts per word, long training | Either; they tie in loss | 4, 5 |
 | E/k between 26 and about 90, with a shared expert | Send the 3 to 10 most common words only to the shared expert; a table then balances | 8 |
 | Building the table | Sort words by frequency and cut into E runs of equal total frequency; keep each word on one expert set; do not copy a learned router | 6 |
 | Which layers | Hash the first layer or first few: they hold most of the early gain. Keep learned routers in later layers, so words with context-dependent jobs can be split when training is long | 7 |
 | Switching from table to learned mid-training | Do not; it was worse than either | 8 |
 
-## 14. Limits
+## 15. Limits
 
+- The table's early lead was gone at width 128, the widest tested; large models are far wider, so its loss advantage there is expected to be small.
 - All trained models are under 2M weights; the long runs are under 0.1M weights and reach 248 tokens per weight. Large-model behaviour is imitated with tiny models, never run.
 - Claims 1 and 2 hold for any token frequencies, but p depends on the tokenizer and data. DeepSeek-V4 uses its own 128K tokenizer on mixed data, so its exact numbers differ.
 - Claim 3 is measured in models whose learned routers route mostly by word in every layer. Deep layers of large models may split common words by context and balance below the limit.

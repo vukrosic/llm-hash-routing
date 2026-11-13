@@ -418,3 +418,23 @@ The key short comparisons were run 3 times each, then two fixes were tested: sen
 - Switching from a table to a learned router does not combine their strengths, even when the router is trained to copy the table first.
 
 Takeaway: the conclusions survive repeats, and the load limit can be lifted by letting the shared expert alone handle the few most common words.
+
+## Moving toward large models (ninth round, 2026-11-13, `scale.py`)
+
+One condition at a time moved toward large models, from 16 experts, top-1, no shared expert, width 32, 2 layers, vocabulary 4,000, 200 steps.
+
+| Condition moved | Table minus learned | Sorted minus random |
+|---|---|---|
+| None (3 runs each) | -0.094 | -0.020 |
+| Vocabulary 16,000 | -0.095 | -0.038 |
+| 4 layers / context 192 / head size 32 / learning rates 2x | -0.115 / -0.085 / -0.082 / -0.107 | -0.018 / -0.013 / -0.023 / -0.016 |
+| Batch 64, 50 steps / 64 experts | -0.146 / -0.124 | -0.024 / -0.017 |
+| 600 steps / shared expert top-2 of 32 | -0.053 / -0.030 | -0.015 / -0.006 |
+| Width 64 / width 128 | -0.034 / +0.007 | -0.028 / - |
+| Vocabulary 16,000 + width 64 + 4 layers + shared top-2 of 32 | -0.043 | +0.015 |
+
+- Every condition except width kept the order: learned router worst, sorted table best.
+- Width removes the table's lead: a wide model's router moves words just as often (churn 0.45 at width 128 vs 0.40 at width 32), but forcing 50% of words to move costs +0.039 at width 128 against +0.233 at width 32.
+- Sending the top 3 words to the shared expert still costs nothing measurable at vocabulary 16,000 (6.593 vs 6.600).
+
+Takeaway: in large, wide models the fixed table's early loss advantage should be small; its value is the load rule and needing no router.
