@@ -1,6 +1,9 @@
-# Hash Routing: When Should Each Token in the Vocabulary Have Its Own Fixed Expert?
+# Hash Routing: When Should Each Token in the Vocabulary Have Its Own Fixed Expert? (full version)
 
 Vuk Rosić
+
+> [!NOTE]
+> This is the full version: every claim, proof and test. The short paper with the main findings is [README.md](README.md). The log of every experiment round is [RESULTS.md](RESULTS.md).
 
 ## Abstract
 

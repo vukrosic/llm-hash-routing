@@ -86,6 +86,21 @@ We moved one setting at a time toward big models: bigger vocabulary, more layers
 
 ---
 
+## Is this new?
+
+Fixed tables were already known to train about as well as learned routers. What was missing is when a table can stay balanced, and why it leads early.
+
+| Work | What it showed | What this paper adds |
+|---|---|---|
+| [Hash Layers](https://arxiv.org/abs/2106.04426) (Roller et al. 2021) | A fixed table in one layer beats learned Switch routing | The load limit: no table balances past about 26 experts per chosen expert |
+| [StableMoE](https://arxiv.org/abs/2204.08396) (Dai et al. 2022) | Learned routers keep moving tokens between experts | A test that the moves cause the early loss: forcing a table to move words raises it |
+| [Clark et al.](https://arxiv.org/abs/2202.01169) (2022) | Hash routing trails a balanced learned router at most model sizes | Why: the early lead shrinks with width and is gone at width 128 |
+| [DeepSeek-V4](https://arxiv.org/abs/2606.19348) (2026) | Uses a fixed table in its first 3 layers, no reason given | Why the first layers: they hold almost all of the early gain |
+
+The shared-expert fix (26 → 42) and the exact load from word counts are new here.
+
+---
+
 ## How we tested it
 
 We counted how often each token appears in English web text and computed the busiest expert exactly for 14 expert designs and 2 tokenizers. Then we trained hundreds of tiny mixture-of-experts models on a laptop, 5 to 20 seconds each, comparing a fixed table with a learned router and repeating key runs 3 times.

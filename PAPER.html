@@ -4,9 +4,11 @@ table{border-collapse:collapse;margin:1em 0;font-size:.88em;font-family:-apple-s
 th,td{border:1px solid #ccc;padding:4px 8px;text-align:left}th{background:#f3f3f3}
 code,pre{font-family:Menlo,monospace;font-size:.9em}pre{background:#f6f6f6;padding:10px}img{max-width:100%;height:auto}p > em:only-child{display:block;text-align:center;font-size:.92em;color:#444;margin-top:-6px}
 </style>
-</head><body>
-<h1>Hash Routing: When Should Each Token in the Vocabulary Have Its Own Fixed Expert?</h1>
+<h1>Hash Routing: When Should Each Token in the Vocabulary Have Its Own Fixed Expert? (full version)</h1>
 <p>Vuk Rosić</p>
+<blockquote>
+<p>This is the full version: every claim, proof and test. The short paper with the main findings is <a href="README.md">README.md</a>. The log of every experiment round is <a href="RESULTS.md">RESULTS.md</a>.</p>
+</blockquote>
 <h2>Abstract</h2>
 <p>Give every word of the vocabulary its own fixed expert, and the experts that hold "the" do all of its work: about one token in 26 of English web text, because a table cannot split a word between experts. So the busiest expert carries at least the most common word's share times the number of experts per chosen expert. With 64 experts per chosen one, as in DeepSeek-V4's 384 experts with 6 chosen, that is 2.4 times the average. Below 26 experts per chosen expert, a table balanced by word frequency spreads the work evenly; above it, no table can. Only this ratio matters, not the number of experts: 64 experts with 1 chosen and 384 with 6 chosen give the same busiest expert. Under a capacity limit, the work that overflows is the sum, over the common words, of how far each word's share exceeds its experts' capacity. So the whole load cost of a fixed table is known from word counts before training.</p>
 <p><img src="figures/abs_load.svg" width="100%"></p>
@@ -1515,4 +1517,3 @@ sorted:    tokens from most to least common, cut into E runs of equal total freq
 </ul>
 <h2>Code</h2>
 <p><code>hr.py</code> (test bed, every flag in <code>--help</code>; <code>--ctx</code> is the test-time context test, <code>--split</code> writes words as two pieces), <code>rule.py</code> (exact load, claims 1 and 2), <code>load.py</code>, <code>curve.py</code> (gap along training), <code>sweep.py</code>, <code>table.py</code>, <code>fit.py</code>, and <code>results.jsonl</code> with every run.</p>
-</body></html>
