@@ -1,5 +1,7 @@
 # Hash routing in mixture-of-experts language models
 
+**Join: [AI Research School](https://www.skool.com/become-ai-researcher-2669)**
+
 We are using this code to write a paper for ICML 2027: **"Hash Routing: When Should Each Token in the Vocabulary Have Its Own Fixed Expert?"** The draft is [PAPER.md](PAPER.md) ([PAPER.html](PAPER.html) renders the figures). The code is under the MIT licence.
 
 **Main rule.** A fixed token-to-expert table cannot split a token, so its busiest expert carries at least max(1, p E/k) times the average load, where p is the most common token's share of text (about 1/26 for English web text), E the number of experts and k the experts per token. A table balanced by token frequency reaches this limit in every design tested, and only E/k matters. In loss, the table never trained worse than a learned router in our tiny models.
