@@ -440,3 +440,14 @@ One condition at a time moved toward large models, from 16 experts, top-1, no sh
 - Sending the top 3 words to the shared expert still costs nothing measurable at vocabulary 16,000 (6.593 vs 6.600).
 
 Takeaway: in large, wide models the fixed table's early loss advantage should be small; its value is the load rule and needing no router.
+
+## Cite
+
+```bibtex
+@misc{rosic2026hashrouting,
+  author = {Rosić, Vuk},
+  title  = {Hash Routing: When Should Each Token in the Vocabulary Have Its Own Fixed Expert?},
+  year   = {2026},
+  url    = {https://github.com/vukrosic/llm-hash-routing}
+}
+```

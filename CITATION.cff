@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "Hash Routing: When Should Each Token in the Vocabulary Have Its Own Fixed Expert?"
+authors:
+  - family-names: "Rosić"
+    given-names: "Vuk"
+    orcid: "https://orcid.org/0009-0001-3983-1579"
+date-released: "2026-11-12"
+url: "https://github.com/vukrosic/llm-hash-routing"
+repository-code: "https://github.com/vukrosic/llm-hash-routing"
+type: software
+license: MIT
+keywords:
+  - mixture of experts
+  - hash routing
+  - load balancing
