@@ -16,7 +16,7 @@ code,pre{font-family:Menlo,monospace;font-size:.9em}pre{background:#f6f6f6;paddi
 <p><em>Figure 2. A learned router keeps moving a word between experts during training. A fixed table never moves it.</em></p>
 <p><img src="figures/abs_cause.svg" width="100%"></p>
 <p><em>Figure 3. The early loss follows the moves. Making a fixed table move words on purpose costs loss in proportion to how many it moves.</em></p>
-<p>The early lead is largest with one expert per word, no shared expert and many experts, and it vanishes with a shared expert and several experts per word, because a move only damages the share of the word's output that the moved expert carries. The best table keeps each word on one fixed expert set, sorts words by frequency and cuts the list into runs of equal total frequency: rare words then share experts with other rare words instead of being drowned out by common ones, and the load is balanced. Almost all of the early gain comes from the first layer, where the hidden state is still close to the word itself, so its experts work as a memory for each word and moving a word throws that memory away. A table loses only when the same word needs different handling in different contexts and training is long, and then keeping a learned router in one layer is enough to win the loss back, which fits hashing only the first layers, as DeepSeek-V4 does.</p>
+<p>The early lead is largest with one expert per word, no shared expert and many experts, and it vanishes with a shared expert, several experts per word and few experts, because a move only damages the share of the word's output that the moved expert carries. The best table keeps each word on one fixed expert set, sorts words by frequency and cuts the list into runs of equal total frequency: rare words then share experts with other rare words instead of being drowned out by common ones, and the load is balanced. Almost all of the early gain comes from the first layer, where the hidden state is still close to the word itself, so its experts work as a memory for each word and moving a word throws that memory away. A table loses only when the same word needs different handling in different contexts and training is long, and then keeping a learned router in one layer is enough to win the loss back, which fits hashing only the first layers, as DeepSeek-V4 does. The load limit can be lifted: send the three most common words only to the shared expert, and a table balances up to 42 experts per chosen expert instead of 26, at no measurable loss; send ten, and it balances up to 87. Starting with a table and switching to a learned router later is worse than either one alone.</p>
 <p><img src="figures/abs_rules.svg" width="100%"></p>
 <p><em>Figure 4. When the fixed table helps early in training, and how to build it. Bar heights show the shape of each trend.</em></p>
 <p>We prove the load limit, compute it exactly from the word counts of two tokenizers in 14 expert designs each, and check it in training, where the predicted overflow and busiest load match the measured ones. We show that the moves cause the early loss by forcing a fixed table to move words and by freezing the router's weights. We imitate long training with tiny models that see up to 248 tokens per weight, and repeat the key runs to measure noise.</p>
@@ -125,9 +125,14 @@ sorted:    tokens from most to least common, cut into E runs of equal total freq
 <td>The early gain comes from the first layer. A table loses only when words need context-dependent experts and training is long, and one learned layer wins it back</td>
 <td>11</td>
 </tr>
+<tr>
+<td>8</td>
+<td>Sending the few most common words only to the shared expert lifts the load limit at little loss; switching from a table to a learned router mid-training does not combine their strengths</td>
+<td>12</td>
+</tr>
 </tbody>
 </table>
-<p>Claims 1 and 2 are proven for any token frequencies and checked exactly on two tokenizers and in training. Claims 3 and 6 held in every setting tested; claim 4 held on web text in every setting and fails when many words have two jobs (claim 7). Claim 5's sizes are trends over 8 designs. Claim 7's first half held in 4 settings; its second half rests on 2-layer models and tied in a 4-layer model.</p>
+<p>Claims 1 and 2 are proven for any token frequencies and checked exactly on two tokenizers and in training. Claims 3 and 6 held in every setting tested; claim 4 held on web text in every setting and fails when many words have two jobs (claim 7). Claim 5's sizes are trends over 8 designs. Claim 7's first half held in 4 settings; its second half rests on 2-layer models and tied in a 4-layer model. Claim 8's load numbers are exact; its loss numbers are 2 repeats of each setting.</p>
 <h2>4. Setup</h2>
 <p><strong>Load, without training (<code>rule.py</code>).</strong> Token frequencies of FineWeb web text under two tokenizers: GPT-2 (50K tokens, counts over the whole training set) and cl100k (100K tokens, 3M tokens of the same text re-tokenized). The most common token is 3.82% and 3.78% of text, so 1/p is about 26 for both. For 14 designs from 8 experts with 1 chosen to 768 with 6 chosen, we build a random and a balanced table and compute each expert's exact share of the routed work, for an infinitely large batch.</p>
 <p><strong>Model.</strong> Pre-norm transformer with RMSNorm, RoPE, QK-norm, no biases, untied output head. Every feed-forward block is a DeepSeek-style MoE: sqrt(softplus) router scores, aux-loss-free balancing (a per-expert bias moved by 0.01 per step toward equal load), router weights renormalized over the chosen experts. Active feed-forward width equals a dense SwiGLU block; with a shared expert, the shared expert takes half of it and the k routed experts share the rest. Muon (Newton-Schulz, momentum 0.95, lr 0.02) trains block matrices, one expert matrix at a time; Adam (betas 0.9, 0.95, lr 0.01) trains embeddings, head, norms and router.</p>
@@ -488,6 +493,42 @@ sorted:    tokens from most to least common, cut into E runs of equal total freq
 </tr>
 </tbody>
 </table>
+<p>Repeated 3 times each, the lead held and stayed above the spread between repeats:</p>
+<table>
+<thead>
+<tr>
+<th>Design (3 runs each)</th>
+<th>Learned</th>
+<th>Fixed table (random)</th>
+<th>Table minus learned</th>
+<th>Spread between repeats</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No shared expert, top-1, 16 experts</td>
+<td>5.165</td>
+<td>5.071</td>
+<td>-0.094</td>
+<td>0.036 / 0.025</td>
+</tr>
+<tr>
+<td>No shared expert, top-1, 32 experts</td>
+<td>5.169</td>
+<td>5.066</td>
+<td>-0.103</td>
+<td>0.039 / 0.011</td>
+</tr>
+<tr>
+<td>Shared expert, top-2 of 32</td>
+<td>5.084</td>
+<td>5.048</td>
+<td>-0.036</td>
+<td>0.008 / 0.012</td>
+</tr>
+</tbody>
+</table>
+<p>With a shared expert and top-2, the table ties at 8 experts (-0.003) but leads at 32 (-0.036), so the tie needs few experts as well (Section 9.4).</p>
 <p>The same held when one condition at a time moved toward larger models (base: no shared expert, top-1 of 8):</p>
 <table>
 <thead>
@@ -906,7 +947,39 @@ sorted:    tokens from most to least common, cut into E runs of equal total freq
 </table>
 <p>Spreading words costs up to 0.119 on web text, more than a learned router loses. On text where words have two jobs, spreading every word wins back part of the table's loss, but less than a learned layer does (Section 11.2).</p>
 <p><strong>Test 5: copy a learned router.</strong> Freezing a learned router's choices after 50 or 100 steps gave 5.091 and 5.101, against 5.065 for a random table: no better than any fixed table.</p>
-<p><strong>Where it is weaker.</strong> The sorted table's gain is 0.01 to 0.03, near the noise of single runs, but it held at all 5 points with one expert per word. StableMoE's frozen learned router beat Hash Layers at a 124M backbone, so a learned assignment may gain value with model size.</p>
+<p><strong>Repeats.</strong> Each single-run gain of 0.01 to 0.03 was near the noise, so the 16- and 32-expert points were run 3 times each:</p>
+<table>
+<thead>
+<tr>
+<th>Experts (top-1, no shared)</th>
+<th>Random table</th>
+<th>Sorted table</th>
+<th>Sorted minus random, each repeat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16</td>
+<td>5.071</td>
+<td>5.051</td>
+<td>-0.013, -0.016, -0.030</td>
+</tr>
+<tr>
+<td>32</td>
+<td>5.066</td>
+<td>5.039</td>
+<td>-0.026, -0.023, -0.031</td>
+</tr>
+<tr>
+<td>Shared expert, top-2 of 32</td>
+<td>5.048</td>
+<td>5.043</td>
+<td>-0.002, -0.004, -0.009</td>
+</tr>
+</tbody>
+</table>
+<p>Sorting won in all 6 pairs with one expert per word, and in all 3 with a shared expert and top-2, where the gain is smaller than the spread between repeats.</p>
+<p><strong>Where it is weaker.</strong> The gain is 0.01 to 0.03. StableMoE's frozen learned router beat Hash Layers at a 124M backbone, so a learned assignment may gain value with model size.</p>
 <h2>11. Claim 7: which layers should use a table</h2>
 <h3>11.1 The early gain comes from the first layer</h3>
 <p><strong>Why.</strong> The first feed-forward layer sees a hidden state that is still close to the word's embedding, so its experts can act as a memory for each word. Later layers see mixed, contextual states, and their experts compute functions shared by many words. Moving a word costs most where an expert holds that word's own memory.</p>
@@ -1034,7 +1107,90 @@ sorted:    tokens from most to least common, cut into E runs of equal total freq
 </table>
 <p>With half the rows reversed, hashing both layers went from ahead to behind during training: -0.032, -0.009, -0.006, 0.000, +0.023, +0.025 at steps 400 to 2,400. The loss grows with the share of words that have two jobs, and the shared expert does not protect against it. Keeping either layer learned wins it all back while still giving the early gain (hash layer 0 only: -0.038 at step 400).</p>
 <p><strong>Where it is weaker.</strong> In a 4-layer model at the same steps (fewer tokens per weight), every arm tied: learned 3.122, first 3 layers hashed 3.119, last 3 hashed 3.128, all 4 hashed 3.120. So whether a deep model needs one learned layer or several, and where, is not settled.</p>
-<h2>12. Who should use it</h2>
+<h2>12. Claim 8: two fixes, one that works and one that does not</h2>
+<h3>12.1 Send the most common words only to the shared expert</h3>
+<p><strong>Why.</strong> The load limit comes from the most common words: "the", "," and "." are each about 3.5% of web text. They are also the easiest words to predict from, and the shared expert sees every token anyway. If these words skip the routed experts, the busiest expert is set by the next most common word, so the limit moves (Claim 1 with the remaining words).</p>
+<p><strong>Test.</strong> Exact load from GPT-2 word counts on web text, and training with 64 experts, top-1, a shared expert and a sorted table, where the top N words use only the shared expert. The unknown-word token also skips the routed experts in these runs, since in a 4,000-word vocabulary it stands for a fifth of the text.</p>
+<table>
+<thead>
+<tr>
+<th>Words sent to the shared expert only</th>
+<th>Share of tokens</th>
+<th>Busiest ÷ average at E/k = 64</th>
+<th>At E/k = 128</th>
+<th>Largest E/k a table can balance</th>
+<th>Web loss, 2 runs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0%</td>
+<td>2.44</td>
+<td>4.88</td>
+<td>26</td>
+<td>5.036, 5.036</td>
+</tr>
+<tr>
+<td>1</td>
+<td>3.8%</td>
+<td>2.46</td>
+<td>4.92</td>
+<td>26</td>
+<td>5.040</td>
+</tr>
+<tr>
+<td>3</td>
+<td>10.9%</td>
+<td>1.53</td>
+<td>3.06</td>
+<td>42</td>
+<td>5.039, 5.045</td>
+</tr>
+<tr>
+<td>10</td>
+<td>22.7%</td>
+<td>1.00</td>
+<td>1.47</td>
+<td>87</td>
+<td>5.054, 5.053</td>
+</tr>
+</tbody>
+</table>
+<p>Sending the top 3 words to the shared expert lifts the balanced range from 26 to 42 experts per chosen expert at a cost within noise (+0.006); sending 10 makes DeepSeek-V4's ratio of 64 fully balanced at +0.018. Removing only "the" does nothing, because "," and "." are almost as common. The skipped tokens also skip the routed experts' compute.</p>
+<p><strong>Where it is weaker.</strong> The measured per-batch load in these runs is dominated by sampling noise (about 12 tokens per expert per batch), so the load column is computed from word counts, not measured. The loss cost may grow in models whose routed experts store more about common words.</p>
+<h3>12.2 Start with a table, switch to a learned router later</h3>
+<p><strong>Why.</strong> The table leads early and a learned router wins late when words need context-dependent experts (Section 11.2). Switching at the right moment could keep both. To keep the switch from moving words, the router is trained to copy the table before the switch.</p>
+<p><strong>Test.</strong> The long run with half the rows reversed, where the learned router beats the table, 8 experts, top-1, no shared expert, both layers switched.</p>
+<table>
+<thead>
+<tr>
+<th>Routing</th>
+<th>Web loss</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Learned from the start</td>
+<td>3.129</td>
+</tr>
+<tr>
+<td>Table throughout</td>
+<td>3.154</td>
+</tr>
+<tr>
+<td>Table, switch at step 600 (of 2,400), copy loss weight 1 / 0.1 / 0</td>
+<td>3.190 / 3.167 / 3.169</td>
+</tr>
+<tr>
+<td>Table, switch at step 1,200, copy loss weight 1</td>
+<td>3.211</td>
+</tr>
+</tbody>
+</table>
+<p>Every switch did worse than both the table and the learned router. With the copy loss, the router matched the table at the switch (churn 0.04 in a short run), so moved words are not the cause; the experts trained under the table do not suit the routes the learned router then finds. Without the copy loss on the hidden state, the router could match only 37% of tokens, because the hidden state does not carry the table's choice.</p>
+<p><strong>Takeaway.</strong> Choose a table or a learned router per layer from the start (Claim 7); do not switch during training.</p>
+<h2>13. Who should use it</h2>
 <table>
 <thead>
 <tr>
@@ -1075,6 +1231,11 @@ sorted:    tokens from most to least common, cut into E runs of equal total freq
 <td>4, 5</td>
 </tr>
 <tr>
+<td>E/k between 26 and about 90, with a shared expert</td>
+<td>Send the 3 to 10 most common words only to the shared expert; a table then balances</td>
+<td>8</td>
+</tr>
+<tr>
 <td>Building the table</td>
 <td>Sort words by frequency and cut into E runs of equal total frequency; keep each word on one expert set; do not copy a learned router</td>
 <td>6</td>
@@ -1084,15 +1245,20 @@ sorted:    tokens from most to least common, cut into E runs of equal total freq
 <td>Hash the first layer or first few: they hold most of the early gain. Keep learned routers in later layers, so words with context-dependent jobs can be split when training is long</td>
 <td>7</td>
 </tr>
+<tr>
+<td>Switching from table to learned mid-training</td>
+<td>Do not; it was worse than either</td>
+<td>8</td>
+</tr>
 </tbody>
 </table>
-<h2>13. Limits</h2>
+<h2>14. Limits</h2>
 <ul>
 <li>All trained models are under 2M weights; the long runs are under 0.1M weights and reach 248 tokens per weight. Large-model behaviour is imitated with tiny models, never run.</li>
 <li>Claims 1 and 2 hold for any token frequencies, but p depends on the tokenizer and data. DeepSeek-V4 uses its own 128K tokenizer on mixed data, so its exact numbers differ.</li>
 <li>Claim 3 is measured in models whose learned routers route mostly by word in every layer. Deep layers of large models may split common words by context and balance below the limit.</li>
 <li>The loss cost of overflow (claim 2) is measured only in tiny models, where it was at most 0.021 at 27% dropped.</li>
-<li>Most comparisons are single runs; the key long comparisons were repeated two or three times.</li>
+<li>The key short comparisons (table vs learned at 16 and 32 experts and with a shared expert, sorted vs random) were repeated 3 times, and the key long comparisons two or three times; other comparisons are single runs.</li>
 <li>The case where a table loses (claim 7) was found only in 2-layer models with reversed rows; real text has words whose job depends on context, but how many and in which layers is not measured here.</li>
 </ul>
 <h2>Appendix A. Every short-run setting</h2>

@@ -399,3 +399,22 @@ Question: which word-to-expert assignment trains best? 2 layers, width 32, vocab
 - Spreading common words over experts by the previous token costs loss on web text (all words: 5.184 vs 5.065). On half-reversed text it recovers part of the table's loss (3.139 vs 3.154; learned 3.129).
 
 Takeaway: keep each word on one expert set, sort words by frequency and cut into runs of equal total frequency. Paper claim 6.
+
+## Repeats and two fixes (eighth round, 2026-11-13)
+
+The key short comparisons were run 3 times each, then two fixes were tested: send the most common words only to the shared expert (`--sharedonly N`), and start with a table and switch to a learned router later (`--switch S`).
+
+| Test | Result |
+|---|---|
+| Table vs learned, 16 / 32 experts, top-1 (3 runs each) | -0.094 / -0.103, spread between repeats at most 0.039 |
+| Table vs learned, shared expert, top-2 of 32 (3 runs each) | -0.036, spread at most 0.012 (at 8 experts it ties) |
+| Sorted vs random table, 16 / 32 experts (3 runs each) | sorted wins all 6 pairs, by 0.013 to 0.031 |
+| Top 3 / top 10 words to the shared expert only, E/k = 64 | balanced up to E/k 42 / 87 instead of 26; loss +0.006 / +0.018 |
+| Table then learned router, switch at 600 or 1,200 of 2,400 steps | 3.167 to 3.211, worse than table (3.154) and learned (3.129) |
+
+- The table's early lead and the sorted table's gain hold over repeats.
+- With a shared expert and top-2, the table still leads at 32 experts; the tie needs few experts as well.
+- Sending "the", "," and "." to the shared expert lifts the load limit at no measurable loss. Removing only "the" does nothing, because "," and "." are almost as common.
+- Switching from a table to a learned router does not combine their strengths, even when the router is trained to copy the table first.
+
+Takeaway: the conclusions survive repeats, and the load limit can be lifted by letting the shared expert alone handle the few most common words.

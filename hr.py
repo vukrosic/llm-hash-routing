@@ -36,6 +36,9 @@ p.add_argument("--freeze", type=int, default=0, help="at this step, turn every l
 p.add_argument("--unk", default="table", choices=["table", "router", "skip"], help="router: in hashed layers the unknown-word token uses the learned router; skip: in every MoE layer the unknown token uses only the shared expert and is left out of load and balancing (real models have no unknown token)")
 p.add_argument("--ctx", action="store_true", help="after training, for each learned layer, replace its routing at test time by each token's most common expert set (counted on 400 training rows) and record the web-loss increase: how much that layer's routing uses context beyond the word")
 p.add_argument("--split", type=int, default=0, help="P > 0: write every word as two pieces (word mod P, P + word // P), so no piece names a word on its own and a layer needs context to know the word, as with subword tokens in large models; fact scores are skipped")
+p.add_argument("--sharedonly", type=int, default=0, help="N > 0: the N most common words skip the routed experts and use only the shared expert")
+p.add_argument("--switch", type=int, default=0, help="S > 0: hashed layers use the table until step S, then their learned router; before S the router is trained to copy the table")
+p.add_argument("--distill", type=float, default=1.0, help="weight of the router-copies-table loss before --switch")
 p.add_argument("--cap", type=float, default=0.0, help="expert capacity factor: each expert takes at most cap x (tokens x k / E) tokens per batch, later ones are dropped (weight 0, residual passes); 0 = no cap")
 p.add_argument("--bspeed", type=float, default=0.01, help="aux-loss-free bias step (DeepSeek-V4 uses 0.001 over far more steps)")
 p.add_argument("--width", type=int, default=48); p.add_argument("--layers", type=int, default=4); p.add_argument("--heads", type=int, default=4)
@@ -149,6 +152,7 @@ class MoE(nn.Module):
         if hashed: s.register_buffer("tid2eid", hash_table(V, E, k, layer))
         if hashed and a.pairhash:
             com = torch.zeros(V, dtype=torch.bool); com[torch.tensor(np.argsort(-FREQ[:V - 1])[:a.pairhash].copy())] = True; s.register_buffer("common", com)
+        if a.sharedonly: top = torch.zeros(V, dtype=torch.bool); top[torch.tensor(np.argsort(-FREQ[:V - 1])[:a.sharedonly].copy())] = True; s.register_buffer("top", top)
         s.register_buffer("cnt", torch.zeros(V, E))  # training-time token -> expert counts (for --freeze)
         s.idx = None; s.force = None  # test-time per-token table (--ctx)
         s.stat = [0.0, 0.0, 0, 0.0, 0]; s.skip = None  # + last-quarter busiest/average sum and count  # training: summed drop share, summed busiest/average load, batches
@@ -168,6 +172,8 @@ class MoE(nn.Module):
         w = w / w.sum(-1, keepdim=True)
         oh = F.one_hot(idx.reshape(-1), s.E)
         s.skip = (ids.reshape(-1) == s.cnt.shape[0] - 1) if a.unk == "skip" else None
+        if a.sharedonly: s.skip = s.top[ids.reshape(-1)] | (s.skip if s.skip is not None else False)
+        s.z = z if (s.hashed and a.switch) else None  # the copy loss also shapes the hidden state; detached, the router copied only 37% of tokens
         if s.skip is not None: w = w * ~s.skip[:, None]; oh = oh * ~s.skip.repeat_interleave(s.k)[:, None]
         load = oh.sum(0).float()
         if a.cap:  # tokens in order; an expert's tokens past its capacity are dropped
@@ -373,6 +379,13 @@ def main():
             for g, lr in zip(o.param_groups, bl): g["lr"] = lr * sc
         x = torch.tensor(W.rows[step * a.batch:(step + 1) * a.batch], device=DEV)
         loss = F.cross_entropy(m(x[:, :-1]).reshape(-1, W.V).float(), x[:, 1:].reshape(-1))
+        if a.switch and step < a.switch:  # router learns to copy the table, so the switch moves few words
+            for blk in m.blocks:
+                f = blk.ffn
+                if f.z is not None: tgt = f.tid2eid[x[:, :-1].reshape(-1)]; loss = loss + a.distill * sum(F.cross_entropy(f.z.float(), tgt[:, j]) for j in range(f.k)) / f.k
+        if a.switch and step == a.switch:
+            for blk in m.blocks:
+                if blk.ffn.hashed: blk.ffn.hashed = False; blk.ffn.z = None
         loss.backward()
         for o in opts: o.step()
         m.zero_grad(set_to_none=True)
